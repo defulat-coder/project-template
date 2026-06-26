@@ -5,13 +5,16 @@ import type { Env } from "./env.js";
 
 export type HealthOptions = {
   checkExternal: boolean;
+  adapters?: HealthAdapters;
 };
 
-async function checkDatabase(enabled: boolean): Promise<DependencyState> {
-  if (!enabled) {
-    return { status: "skipped", message: "external checks disabled" };
-  }
+export type HealthAdapters = {
+  database(): Promise<DependencyState>;
+  redis(): Promise<DependencyState>;
+  now(): string;
+};
 
+async function checkDatabase(): Promise<DependencyState> {
   try {
     const { prisma } = await import("@project-template/db");
     await withTimeout(prisma.$queryRaw`SELECT 1`, 800, "PostgreSQL check timed out");
@@ -26,11 +29,7 @@ async function checkDatabase(enabled: boolean): Promise<DependencyState> {
   }
 }
 
-async function checkRedis(redisUrl: string, enabled: boolean): Promise<DependencyState> {
-  if (!enabled) {
-    return { status: "skipped", message: "external checks disabled" };
-  }
-
+async function checkRedis(redisUrl: string): Promise<DependencyState> {
   const redis = createRedisPingConnection(redisUrl);
   redis.on("error", () => {
     // Health checks report Redis errors in the response instead of emitting noisy client errors.
@@ -51,6 +50,22 @@ async function checkRedis(redisUrl: string, enabled: boolean): Promise<Dependenc
   }
 }
 
+function createSkippedAdapters(): HealthAdapters {
+  return {
+    database: async () => ({ status: "skipped", message: "external checks disabled" }),
+    redis: async () => ({ status: "skipped", message: "external checks disabled" }),
+    now: () => new Date().toISOString()
+  };
+}
+
+function createDefaultAdapters(env: Env): HealthAdapters {
+  return {
+    database: checkDatabase,
+    redis: () => checkRedis(env.REDIS_URL),
+    now: () => new Date().toISOString()
+  };
+}
+
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
   let timeout: NodeJS.Timeout | undefined;
 
@@ -69,17 +84,15 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: s
 }
 
 export async function getHealth(env: Env, options: HealthOptions): Promise<HealthStatus> {
-  const [database, redis] = await Promise.all([
-    checkDatabase(options.checkExternal),
-    checkRedis(env.REDIS_URL, options.checkExternal)
-  ]);
+  const adapters = options.adapters ?? (options.checkExternal ? createDefaultAdapters(env) : createSkippedAdapters());
+  const [database, redis] = await Promise.all([adapters.database(), adapters.redis()]);
   const agentConfig = parseAgentConfig(env);
   const status = database.status === "error" || redis.status === "error" ? "degraded" : "ok";
 
   return createHealthStatus({
     service: "api",
     status,
-    timestamp: new Date().toISOString(),
+    timestamp: adapters.now(),
     database,
     redis,
     queue: {

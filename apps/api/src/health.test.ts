@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildApp } from "./app.js";
 import { loadEnv } from "./env.js";
+import { getHealth } from "./health.js";
 
 describe("GET /health", () => {
   it("returns health status without external services in tests", async () => {
@@ -18,5 +19,23 @@ describe("GET /health", () => {
     expect(body.database.status).toBe("skipped");
     expect(body.redis.status).toBe("skipped");
     expect(body.claude.configured).toBe(false);
+  });
+});
+
+describe("getHealth", () => {
+  it("aggregates adapter results through the Health interface", async () => {
+    const status = await getHealth(loadEnv({ NODE_ENV: "test" }), {
+      checkExternal: true,
+      adapters: {
+        database: async () => ({ status: "ok", message: "PostgreSQL reachable" }),
+        redis: async () => ({ status: "error", message: "Redis refused connection" }),
+        now: () => "2026-06-26T00:00:00.000Z"
+      }
+    });
+
+    expect(status.status).toBe("degraded");
+    expect(status.timestamp).toBe("2026-06-26T00:00:00.000Z");
+    expect(status.queue.status).toBe("unavailable");
+    expect(status.redis.message).toBe("Redis refused connection");
   });
 });
