@@ -12,9 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "pino": "latest"
+    "pino": "^10.3.1"
   },
   "devDependencies": {
-    "vitest": "latest"
+    "vitest": "^4.1.9"
   }
 }
