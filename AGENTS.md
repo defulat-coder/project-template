@@ -70,18 +70,6 @@ test -f .codex/skills/<skill-name>/SKILL.md
 
 如果上游技能文件内部硬编码了 `.agents/skills/<skill-name>/...` 路径，必须保留 `.agents` 作为真实路径，不能只放 `.codex`。
 
-当前已安装技能：
-
-- `.agents/skills/agents-md`
-- `.agents/skills/chinese-commit-conventions`
-- `.agents/skills/shadcn`
-- `.agents/skills/impeccable`
-- `.agents/skills/react-best-practices`
-- `.agents/skills/next-cache-components-adoption`
-- `.agents/skills/next-cache-components-optimizer`
-- `.agents/skills/next-dev-loop`
-- `.agents/skills/supabase-postgres-best-practices`
-
 ## 模块地图
 
 - `apps/web`: 用户界面和浏览器端体验。
