@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --port 3000",
+    "start": "next start --hostname 0.0.0.0 --port 3000",
     "build": "next build",
     "lint": "eslint app src",
     "typecheck": "tsc -p tsconfig.json --noEmit",

@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx --env-file=../../.env watch src/worker.ts",
-    "build": "tsup src/worker.ts --format esm",
+    "start": "node dist/worker.js",
+    "build": "tsup",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
@@ -14,6 +15,7 @@
     "@project-template/logger": "workspace:*",
     "@project-template/shared": "workspace:*",
     "bullmq": "^5.79.1",
+    "pino": "^10.3.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
